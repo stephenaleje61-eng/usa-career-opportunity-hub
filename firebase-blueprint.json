@@ -1,0 +1,561 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "Registered applicant or administrator account profile.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "displayName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "minLength": 5,
+          "maxLength": 160
+        },
+        "country": {
+          "type": "string",
+          "minLength": 0,
+          "maxLength": 100
+        },
+        "state": {
+          "type": "string",
+          "minLength": 0,
+          "maxLength": 100
+        },
+        "city": {
+          "type": "string",
+          "minLength": 0,
+          "maxLength": 100
+        },
+        "registeredAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["uid", "displayName", "email", "registeredAt", "updatedAt"]
+    },
+    "FavoriteJob": {
+      "title": "FavoriteJob",
+      "description": "Saved favorite career category or verified vacancy for an applicant.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "userId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "itemType": {
+          "type": "string",
+          "enum": ["category", "vacancy"]
+        },
+        "itemId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "title": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 160
+        },
+        "departmentName": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 120
+        },
+        "savedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["id", "userId", "itemType", "itemId", "title", "departmentName", "savedAt"]
+    },
+    "AdminRecord": {
+      "title": "AdminRecord",
+      "description": "Authorized administrator registry entry.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "minLength": 5,
+          "maxLength": 160
+        },
+        "grantedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["uid", "email", "grantedAt"]
+    },
+    "VerifiedVacancy": {
+      "title": "VerifiedVacancy",
+      "description": "Employer-verified job vacancy published by authorized platform administrators.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "title": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 160
+        },
+        "employerName": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 160
+        },
+        "employerVerified": {
+          "type": "boolean"
+        },
+        "verificationLabel": {
+          "type": "string",
+          "enum": ["Verified Employer", "Pending Verification"]
+        },
+        "departmentCode": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 10
+        },
+        "departmentName": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 100
+        },
+        "categoryName": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 120
+        },
+        "location": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 160
+        },
+        "state": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 60
+        },
+        "city": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "salaryRange": {
+          "type": "string",
+          "minLength": 0,
+          "maxLength": 100
+        },
+        "salaryVerified": {
+          "type": "boolean"
+        },
+        "salaryMinAnnual": {
+          "type": "number"
+        },
+        "employmentType": {
+          "type": "string",
+          "enum": ["Full-time", "Part-time", "Contract", "Internship", "Temporary", "Remote"]
+        },
+        "requiredQualification": {
+          "type": "string",
+          "enum": [
+            "High School / Trade",
+            "Associate Degree",
+            "Bachelor's Degree",
+            "Master's / Doctoral",
+            "Professional License / Certification"
+          ]
+        },
+        "qualificationsDetail": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 1000
+        },
+        "description": {
+          "type": "string",
+          "minLength": 10,
+          "maxLength": 4000
+        },
+        "deadline": {
+          "type": "string",
+          "minLength": 4,
+          "maxLength": 30
+        },
+        "status": {
+          "type": "string",
+          "enum": ["Open", "Closed"]
+        },
+        "createdByUid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "title",
+        "employerName",
+        "employerVerified",
+        "verificationLabel",
+        "departmentCode",
+        "departmentName",
+        "categoryName",
+        "location",
+        "state",
+        "city",
+        "salaryRange",
+        "salaryVerified",
+        "salaryMinAnnual",
+        "employmentType",
+        "requiredQualification",
+        "qualificationsDetail",
+        "description",
+        "deadline",
+        "status",
+        "createdByUid",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "JobApplication": {
+      "title": "JobApplication",
+      "description": "Submitted job application with applicant qualifications and CV metadata.",
+      "type": "object",
+      "properties": {
+        "applicantUid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "applicantCode": {
+          "type": "string",
+          "minLength": 4,
+          "maxLength": 40
+        },
+        "fullName": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 120
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "minLength": 5,
+          "maxLength": 160
+        },
+        "phone": {
+          "type": "string",
+          "minLength": 5,
+          "maxLength": 40
+        },
+        "country": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 100
+        },
+        "state": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "city": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "departmentName": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 100
+        },
+        "jobCategory": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 120
+        },
+        "positionApplied": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 160
+        },
+        "vacancyId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "applicationType": {
+          "type": "string",
+          "enum": ["Verified Vacancy", "General Career Category"]
+        },
+        "education": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 200
+        },
+        "experience": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 3000
+        },
+        "skills": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 1000
+        },
+        "coverLetter": {
+          "type": "string",
+          "minLength": 10,
+          "maxLength": 4000
+        },
+        "linkedinUrl": {
+          "type": "string",
+          "minLength": 0,
+          "maxLength": 300
+        },
+        "cvFileName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 260
+        },
+        "cvFileType": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "cvFileSize": {
+          "type": "number"
+        },
+        "cvStorageType": {
+          "type": "string",
+          "enum": ["storage", "firestore_fallback"]
+        },
+        "cvStoragePath": {
+          "type": "string",
+          "minLength": 0,
+          "maxLength": 500
+        },
+        "cvDownloadUrl": {
+          "type": "string",
+          "minLength": 0,
+          "maxLength": 2000
+        },
+        "consentAccepted": {
+          "type": "boolean"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["pending", "under_review", "shortlisted", "rejected"]
+        },
+        "adminNotes": {
+          "type": "string",
+          "minLength": 0,
+          "maxLength": 2000
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "applicantUid",
+        "applicantCode",
+        "fullName",
+        "email",
+        "phone",
+        "country",
+        "state",
+        "city",
+        "departmentName",
+        "jobCategory",
+        "positionApplied",
+        "vacancyId",
+        "applicationType",
+        "education",
+        "experience",
+        "skills",
+        "coverLetter",
+        "linkedinUrl",
+        "cvFileName",
+        "cvFileType",
+        "cvFileSize",
+        "cvStorageType",
+        "cvStoragePath",
+        "cvDownloadUrl",
+        "consentAccepted",
+        "status",
+        "adminNotes",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "ApplicationFileFallback": {
+      "title": "ApplicationFileFallback",
+      "description": "Encrypted/restricted fallback storage for uploaded CV files when Storage bucket is uninitialized.",
+      "type": "object",
+      "properties": {
+        "applicationId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "applicantUid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "fileName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 260
+        },
+        "mimeType": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "fileSize": {
+          "type": "number"
+        },
+        "base64Data": {
+          "type": "string",
+          "minLength": 4,
+          "maxLength": 950000
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "applicationId",
+        "applicantUid",
+        "fileName",
+        "mimeType",
+        "fileSize",
+        "base64Data",
+        "createdAt"
+      ]
+    },
+    "SupportInquiry": {
+      "title": "SupportInquiry",
+      "description": "Authenticated applicant support inquiry submitted through the Support page.",
+      "type": "object",
+      "properties": {
+        "senderUid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "fullName": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 120
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "minLength": 5,
+          "maxLength": 160
+        },
+        "subject": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 200
+        },
+        "message": {
+          "type": "string",
+          "minLength": 10,
+          "maxLength": 3000
+        },
+        "status": {
+          "type": "string",
+          "enum": ["Open", "Resolved"]
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["senderUid", "fullName", "email", "subject", "message", "status", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserProfile" },
+      "description": "Registered user profiles isolated to owner and authorized admins."
+    },
+    "/users/{userId}/favorites/{favoriteId}": {
+      "schema": { "$ref": "#/entities/FavoriteJob" },
+      "description": "Applicant saved favorite jobs and career categories."
+    },
+    "/admins/{adminUid}": {
+      "schema": { "$ref": "#/entities/AdminRecord" },
+      "description": "Authorized administrator registry."
+    },
+    "/vacancies/{vacancyId}": {
+      "schema": { "$ref": "#/entities/VerifiedVacancy" },
+      "description": "Employer-verified job vacancies published by platform administrators."
+    },
+    "/job_applications/{applicationId}": {
+      "schema": { "$ref": "#/entities/JobApplication" },
+      "description": "Submitted job applications strictly accessible to the submitting applicant and authorized administrators."
+    },
+    "/applicationFiles/{applicationId}": {
+      "schema": { "$ref": "#/entities/ApplicationFileFallback" },
+      "description": "Restricted fallback CV attachment records accessible only to the submitting applicant and authorized administrators."
+    },
+    "/supportMessages/{messageId}": {
+      "schema": { "$ref": "#/entities/SupportInquiry" },
+      "description": "Applicant support inquiries accessible to sender and authorized administrators."
+    }
+  }
+}

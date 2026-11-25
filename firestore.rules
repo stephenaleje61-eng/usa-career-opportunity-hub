@@ -1,0 +1,351 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Global safety net: default deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Core primitives
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null && request.auth.token.email_verified == true;
+    }
+
+    function isOwner(uid) {
+      return isSignedIn() && request.auth.uid == uid;
+    }
+
+    function isPrimaryAdmin() {
+      return isSignedIn() && request.auth.token.email == 'sirrodstephen@gmail.com';
+    }
+
+    function isAdmin() {
+      return isPrimaryAdmin() || (isSignedIn() && exists(/databases/$(database)/documents/admins/$(request.auth.uid)));
+    }
+
+    function isValidString(val, minLen, maxLen) {
+      return val is string && val.size() >= minLen && val.size() <= maxLen;
+    }
+
+    function isValidEmail(val) {
+      return isValidString(val, 5, 160) && val.matches('^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$');
+    }
+
+    // Entity validation blueprints
+    function isValidUserProfile(data) {
+      return data.keys().hasAll(['uid', 'displayName', 'email', 'registeredAt', 'updatedAt'])
+        && data.keys().hasOnly(['uid', 'displayName', 'email', 'country', 'state', 'city', 'registeredAt', 'updatedAt'])
+        && isValidId(data.uid)
+        && isValidString(data.displayName, 1, 120)
+        && isValidEmail(data.email)
+        && (!('country' in data) || isValidString(data.country, 0, 100))
+        && (!('state' in data) || isValidString(data.state, 0, 100))
+        && (!('city' in data) || isValidString(data.city, 0, 100))
+        && data.registeredAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidFavoriteJob(data) {
+      return data.keys().hasAll(['id', 'userId', 'itemType', 'itemId', 'title', 'departmentName', 'savedAt'])
+        && data.keys().hasOnly(['id', 'userId', 'itemType', 'itemId', 'title', 'departmentName', 'savedAt'])
+        && isValidId(data.id)
+        && isValidId(data.userId)
+        && data.itemType in ['category', 'vacancy']
+        && isValidString(data.itemId, 1, 128)
+        && isValidString(data.title, 2, 160)
+        && isValidString(data.departmentName, 2, 120)
+        && data.savedAt is timestamp;
+    }
+
+    function isValidAdminRecord(data) {
+      return data.keys().hasAll(['uid', 'email', 'grantedAt'])
+        && data.keys().hasOnly(['uid', 'email', 'grantedAt'])
+        && isValidId(data.uid)
+        && isValidEmail(data.email)
+        && data.grantedAt is timestamp;
+    }
+
+    function isValidVerifiedVacancy(data) {
+      return data.keys().hasAll([
+          'id', 'title', 'employerName', 'employerVerified', 'verificationLabel',
+          'departmentCode', 'departmentName', 'categoryName', 'location', 'state',
+          'city', 'salaryRange', 'salaryVerified', 'salaryMinAnnual', 'employmentType',
+          'requiredQualification', 'qualificationsDetail', 'description', 'deadline',
+          'status', 'createdByUid', 'createdAt', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'id', 'title', 'employerName', 'employerVerified', 'verificationLabel',
+          'departmentCode', 'departmentName', 'categoryName', 'location', 'state',
+          'city', 'salaryRange', 'salaryVerified', 'salaryMinAnnual', 'employmentType',
+          'requiredQualification', 'qualificationsDetail', 'description', 'deadline',
+          'status', 'createdByUid', 'createdAt', 'updatedAt'
+        ])
+        && isValidId(data.id)
+        && isValidString(data.title, 2, 160)
+        && isValidString(data.employerName, 2, 160)
+        && data.employerVerified is bool
+        && data.verificationLabel in ['Verified Employer', 'Pending Verification']
+        && isValidString(data.departmentCode, 1, 10)
+        && isValidString(data.departmentName, 2, 100)
+        && isValidString(data.categoryName, 2, 120)
+        && isValidString(data.location, 2, 160)
+        && isValidString(data.state, 2, 60)
+        && isValidString(data.city, 1, 100)
+        && isValidString(data.salaryRange, 0, 100)
+        && data.salaryVerified is bool
+        && data.salaryMinAnnual is number
+        && data.salaryMinAnnual >= 0
+        && data.salaryMinAnnual <= 10000000
+        && data.employmentType in ['Full-time', 'Part-time', 'Contract', 'Internship', 'Temporary', 'Remote']
+        && data.requiredQualification in [
+          'High School / Trade',
+          'Associate Degree',
+          'Bachelor\'s Degree',
+          'Master\'s / Doctoral',
+          'Professional License / Certification'
+        ]
+        && isValidString(data.qualificationsDetail, 2, 1000)
+        && isValidString(data.description, 10, 4000)
+        && isValidString(data.deadline, 4, 30)
+        && data.status in ['Open', 'Closed']
+        && isValidId(data.createdByUid)
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidJobApplication(data) {
+      return data.keys().hasAll([
+          'applicantUid', 'applicantCode', 'fullName', 'email', 'phone',
+          'country', 'state', 'city', 'departmentName', 'jobCategory',
+          'positionApplied', 'vacancyId', 'applicationType', 'education',
+          'experience', 'skills', 'coverLetter', 'linkedinUrl',
+          'cvFileName', 'cvFileType', 'cvFileSize', 'cvStorageType',
+          'cvStoragePath', 'cvDownloadUrl', 'consentAccepted', 'status',
+          'adminNotes', 'createdAt', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'applicantUid', 'applicantCode', 'fullName', 'email', 'phone',
+          'country', 'state', 'city', 'departmentName', 'jobCategory',
+          'positionApplied', 'vacancyId', 'applicationType', 'education',
+          'experience', 'skills', 'coverLetter', 'linkedinUrl',
+          'cvFileName', 'cvFileType', 'cvFileSize', 'cvStorageType',
+          'cvStoragePath', 'cvDownloadUrl', 'consentAccepted', 'status',
+          'adminNotes', 'createdAt', 'updatedAt'
+        ])
+        && isValidId(data.applicantUid)
+        && isValidString(data.applicantCode, 4, 40)
+        && isValidString(data.fullName, 2, 120)
+        && isValidEmail(data.email)
+        && isValidString(data.phone, 7, 40)
+        && isValidString(data.country, 2, 100)
+        && isValidString(data.state, 1, 100)
+        && isValidString(data.city, 1, 100)
+        && isValidString(data.departmentName, 2, 100)
+        && isValidString(data.jobCategory, 2, 120)
+        && isValidString(data.positionApplied, 2, 160)
+        && isValidString(data.vacancyId, 1, 128)
+        && data.applicationType in ['Verified Vacancy', 'General Career Category']
+        && isValidString(data.education, 2, 200)
+        && isValidString(data.experience, 2, 3000)
+        && isValidString(data.skills, 2, 1000)
+        && isValidString(data.coverLetter, 10, 4000)
+        && isValidString(data.linkedinUrl, 0, 300)
+        && isValidString(data.cvFileName, 5, 260)
+        && data.cvFileName.matches('^.+\\.(pdf|doc|docx|png|jpg|jpeg|PDF|DOC|DOCX|PNG|JPG|JPEG)$')
+        && isValidString(data.cvFileType, 1, 120)
+        && data.cvFileSize is number
+        && data.cvFileSize > 0
+        && data.cvFileSize <= 5242880
+        && data.cvStorageType in ['storage', 'firestore_fallback']
+        && isValidString(data.cvStoragePath, 1, 500)
+        && isValidString(data.cvDownloadUrl, 0, 2000)
+        && data.consentAccepted is bool
+        && data.status in ['pending', 'under_review', 'shortlisted', 'rejected']
+        && isValidString(data.adminNotes, 0, 2000)
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidApplicationFile(data) {
+      return data.keys().hasAll([
+          'applicationId', 'applicantUid', 'fileName', 'mimeType', 'fileSize', 'base64Data', 'createdAt'
+        ])
+        && data.keys().hasOnly([
+          'applicationId', 'applicantUid', 'fileName', 'mimeType', 'fileSize', 'base64Data', 'createdAt'
+        ])
+        && isValidId(data.applicationId)
+        && isValidId(data.applicantUid)
+        && isValidString(data.fileName, 1, 260)
+        && isValidString(data.mimeType, 1, 120)
+        && data.fileSize is number
+        && data.fileSize > 0
+        && data.fileSize <= 700000
+        && isValidString(data.base64Data, 4, 950000)
+        && data.createdAt is timestamp;
+    }
+
+    function isValidSupportInquiry(data) {
+      return data.keys().hasAll(['senderUid', 'fullName', 'email', 'subject', 'message', 'status', 'createdAt'])
+        && data.keys().hasOnly(['senderUid', 'fullName', 'email', 'subject', 'message', 'status', 'createdAt'])
+        && isValidId(data.senderUid)
+        && isValidString(data.fullName, 2, 120)
+        && isValidEmail(data.email)
+        && isValidString(data.subject, 3, 200)
+        && isValidString(data.message, 10, 3000)
+        && data.status in ['Open', 'Resolved']
+        && data.createdAt is timestamp;
+    }
+
+    // Users collection (PII strictly isolated to owner and admin)
+    match /users/{userId} {
+      allow get: if isValidId(userId) && (isOwner(userId) || isAdmin());
+      allow list: if isPrimaryAdmin();
+      allow create: if isValidId(userId)
+        && isOwner(userId)
+        && isValidUserProfile(incoming())
+        && incoming().uid == request.auth.uid
+        && incoming().registeredAt == request.time
+        && incoming().updatedAt == request.time;
+      allow update: if isValidId(userId)
+        && isOwner(userId)
+        && isValidUserProfile(incoming())
+        && incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'country', 'state', 'city', 'updatedAt'])
+        && incoming().uid == existing().uid
+        && incoming().email == existing().email
+        && incoming().registeredAt == existing().registeredAt
+        && incoming().updatedAt == request.time;
+      allow delete: if isValidId(userId) && isAdmin();
+
+      match /favorites/{favoriteId} {
+        allow get: if isValidId(userId) && isValidId(favoriteId) && isOwner(userId);
+        allow list: if isValidId(userId) && isOwner(userId);
+        allow create: if isValidId(userId)
+          && isValidId(favoriteId)
+          && isOwner(userId)
+          && exists(/databases/$(database)/documents/users/$(userId))
+          && isValidFavoriteJob(incoming())
+          && incoming().id == favoriteId
+          && incoming().userId == request.auth.uid
+          && incoming().savedAt == request.time;
+        allow update: if false;
+        allow delete: if isValidId(userId) && isValidId(favoriteId) && isOwner(userId);
+      }
+    }
+
+    // Admins collection
+    match /admins/{adminUid} {
+      allow get: if isValidId(adminUid) && (isOwner(adminUid) || isAdmin());
+      allow list: if isPrimaryAdmin();
+      allow create: if isValidId(adminUid)
+        && isPrimaryAdmin()
+        && isValidAdminRecord(incoming())
+        && incoming().uid == adminUid
+        && incoming().grantedAt == request.time;
+      allow update: if false;
+      allow delete: if isValidId(adminUid) && isPrimaryAdmin();
+    }
+
+    // Verified Employer Vacancies
+    match /vacancies/{vacancyId} {
+      allow get: if isValidId(vacancyId) && (existing().status == 'Open' || isAdmin());
+      allow list: if resource.data.status == 'Open' || isPrimaryAdmin();
+      allow create: if isValidId(vacancyId)
+        && isAdmin()
+        && isValidVerifiedVacancy(incoming())
+        && incoming().id == vacancyId
+        && incoming().createdByUid == request.auth.uid
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+      allow update: if isValidId(vacancyId)
+        && isAdmin()
+        && isValidVerifiedVacancy(incoming())
+        && incoming().diff(existing()).affectedKeys().hasOnly([
+          'title', 'employerName', 'employerVerified', 'verificationLabel',
+          'departmentCode', 'departmentName', 'categoryName', 'location', 'state',
+          'city', 'salaryRange', 'salaryVerified', 'salaryMinAnnual', 'employmentType',
+          'requiredQualification', 'qualificationsDetail', 'description', 'deadline',
+          'status', 'updatedAt'
+        ])
+        && incoming().id == existing().id
+        && incoming().createdByUid == existing().createdByUid
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time;
+      allow delete: if isValidId(vacancyId) && isAdmin();
+    }
+
+    // Job Applications
+    match /job_applications/{applicationId} {
+      allow get: if isValidId(applicationId)
+        && (isAdmin() || (isSignedIn() && existing().applicantUid == request.auth.uid));
+      allow list: if isPrimaryAdmin()
+        || (isSignedIn() && resource.data.applicantUid == request.auth.uid);
+      allow create: if isValidId(applicationId)
+        && isSignedIn()
+        && isValidJobApplication(incoming())
+        && incoming().applicantUid == request.auth.uid
+        && incoming().consentAccepted == true
+        && incoming().status == 'pending'
+        && incoming().adminNotes == ''
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+      allow update: if isValidId(applicationId)
+        && isAdmin()
+        && isValidJobApplication(incoming())
+        && incoming().diff(existing()).affectedKeys().hasOnly(['status', 'adminNotes', 'updatedAt'])
+        && incoming().applicantUid == existing().applicantUid
+        && incoming().applicantCode == existing().applicantCode
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time;
+      allow delete: if isValidId(applicationId) && isAdmin();
+    }
+
+    // Fallback CV files (only when Storage bucket is unavailable)
+    match /applicationFiles/{applicationId} {
+      allow get: if isValidId(applicationId)
+        && (isAdmin() || (isSignedIn() && existing().applicantUid == request.auth.uid));
+      allow list: if false;
+      allow create: if isValidId(applicationId)
+        && isSignedIn()
+        && isValidApplicationFile(incoming())
+        && incoming().applicationId == applicationId
+        && incoming().applicantUid == request.auth.uid
+        && incoming().createdAt == request.time;
+      allow update: if false;
+      allow delete: if isValidId(applicationId) && isAdmin();
+    }
+
+    // Support Inquiries
+    match /supportMessages/{messageId} {
+      allow get: if isValidId(messageId)
+        && (isAdmin() || (isSignedIn() && existing().senderUid == request.auth.uid));
+      allow list: if isPrimaryAdmin()
+        || (isSignedIn() && resource.data.senderUid == request.auth.uid);
+      allow create: if isValidId(messageId)
+        && isSignedIn()
+        && isValidSupportInquiry(incoming())
+        && incoming().senderUid == request.auth.uid
+        && incoming().status == 'Open'
+        && incoming().createdAt == request.time;
+      allow update: if isValidId(messageId)
+        && isAdmin()
+        && isValidSupportInquiry(incoming())
+        && incoming().diff(existing()).affectedKeys().hasOnly(['status'])
+        && incoming().senderUid == existing().senderUid
+        && incoming().createdAt == existing().createdAt;
+      allow delete: if isValidId(messageId) && isAdmin();
+    }
+  }
+}

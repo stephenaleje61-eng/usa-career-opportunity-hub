@@ -1,0 +1,6 @@
+{
+  "name": "USA Career & Opportunity Hub",
+  "description": "Discover Opportunities. Apply for Jobs. Build Your American Dream. Explore 300 U.S. job categories across 30 major employment departments, verified vacancies, and secure application tracking.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
