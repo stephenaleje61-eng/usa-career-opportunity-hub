@@ -110,7 +110,7 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
                   rel="noopener noreferrer"
                   className="hover:text-white transition-colors inline-block"
                 >
-                  Telegram Support (Optional)
+                  Join Official Telegram
                 </a>
               </li>
             </ul>

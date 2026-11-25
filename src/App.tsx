@@ -16,6 +16,7 @@ import { JobDetailPage, type JobDetailSelection } from './components/JobDetailPa
 import { Navbar, type ActiveView } from './components/Navbar';
 import { OpportunitiesHome } from './components/OpportunitiesHome';
 import { SupportAndLegal } from './components/SupportAndLegal';
+import { JOB_CATEGORIES } from './data/categories';
 import {
   checkIsAdmin,
   ensureUserProfile,
@@ -38,10 +39,72 @@ import type {
   VerifiedVacancy
 } from './types/career';
 
+function getPathForView(view: ActiveView, detail?: JobDetailSelection | null): string {
+  switch (view) {
+    case 'departments':
+      return '/departments';
+    case 'tracker':
+      return '/tracker';
+    case 'support':
+      return '/support';
+    case 'admin':
+      return '/admin';
+    case 'privacy':
+      return '/privacy';
+    case 'terms':
+      return '/terms';
+    case 'antifraud':
+      return '/antifraud';
+    case 'jobDetail':
+      if (detail?.type === 'category') return `/jobs/${encodeURIComponent(detail.category.id)}`;
+      if (detail?.type === 'vacancy') return `/jobs/${encodeURIComponent(detail.vacancy.id)}`;
+      return '/';
+    case 'opportunities':
+    default:
+      return '/';
+  }
+}
+
+function parseRoute(
+  pathname: string,
+  vacancies: VerifiedVacancy[]
+): { view: ActiveView; detail: JobDetailSelection | null; pendingJobSlug: string | null } {
+  const clean = pathname.replace(/\/+$/, '') || '/';
+  if (clean === '/departments') return { view: 'departments', detail: null, pendingJobSlug: null };
+  if (clean === '/tracker' || clean === '/my-applications')
+    return { view: 'tracker', detail: null, pendingJobSlug: null };
+  if (clean === '/support') return { view: 'support', detail: null, pendingJobSlug: null };
+  if (clean === '/admin') return { view: 'admin', detail: null, pendingJobSlug: null };
+  if (clean === '/privacy') return { view: 'privacy', detail: null, pendingJobSlug: null };
+  if (clean === '/terms') return { view: 'terms', detail: null, pendingJobSlug: null };
+  if (clean === '/antifraud') return { view: 'antifraud', detail: null, pendingJobSlug: null };
+  if (clean.startsWith('/jobs/')) {
+    const slug = decodeURIComponent(clean.slice('/jobs/'.length));
+    const cat = JOB_CATEGORIES.find((c) => c.id === slug);
+    if (cat) {
+      return { view: 'jobDetail', detail: { type: 'category', category: cat }, pendingJobSlug: null };
+    }
+    const vac = vacancies.find((v) => v.id === slug);
+    if (vac) {
+      return { view: 'jobDetail', detail: { type: 'vacancy', vacancy: vac }, pendingJobSlug: null };
+    }
+    return { view: 'opportunities', detail: null, pendingJobSlug: slug };
+  }
+  return { view: 'opportunities', detail: null, pendingJobSlug: null };
+}
+
 function MainApp() {
-  const [activeView, setActiveView] = useState<ActiveView>('opportunities');
+  const initialRoute =
+    typeof window !== 'undefined'
+      ? parseRoute(window.location.pathname, [])
+      : { view: 'opportunities' as ActiveView, detail: null, pendingJobSlug: null };
+
+  const [activeView, setActiveView] = useState<ActiveView>(initialRoute.view);
   const [returnView, setReturnView] = useState<ActiveView>('opportunities');
-  const [selectedJobDetail, setSelectedJobDetail] = useState<JobDetailSelection | null>(null);
+  const [selectedJobDetail, setSelectedJobDetail] = useState<JobDetailSelection | null>(
+    initialRoute.detail
+  );
+  const [pendingJobSlug, setPendingJobSlug] = useState<string | null>(initialRoute.pendingJobSlug);
 
   const [user, setUser] = useState<User | null>(null);
   const [authReady, setAuthReady] = useState(false);
@@ -64,6 +127,29 @@ function MainApp() {
 
   // Application Modal Target
   const [applyTarget, setApplyTarget] = useState<ApplicationTarget | null>(null);
+
+  // Resolve deep-linked verified vacancy once Firestore vacancies load
+  useEffect(() => {
+    if (!pendingJobSlug || vacancies.length === 0) return;
+    const vac = vacancies.find((v) => v.id === pendingJobSlug);
+    if (vac) {
+      setSelectedJobDetail({ type: 'vacancy', vacancy: vac });
+      setActiveView('jobDetail');
+      setPendingJobSlug(null);
+    }
+  }, [pendingJobSlug, vacancies]);
+
+  // Browser back/forward button synchronization
+  useEffect(() => {
+    const onPopState = () => {
+      const parsed = parseRoute(window.location.pathname, vacancies);
+      setActiveView(parsed.view);
+      setSelectedJobDetail(parsed.detail);
+      setPendingJobSlug(parsed.pendingJobSlug);
+    };
+    window.addEventListener('popstate', onPopState);
+    return () => window.removeEventListener('popstate', onPopState);
+  }, [vacancies]);
 
   // Auth listener
   useEffect(() => {
@@ -165,13 +251,27 @@ function MainApp() {
     };
   }, [authReady, user, isAdmin]);
 
+  const pushRoute = (view: ActiveView, detail?: JobDetailSelection | null) => {
+    if (typeof window === 'undefined') return;
+    const nextPath = getPathForView(view, detail);
+    if (window.location.pathname !== nextPath) {
+      window.history.pushState({}, '', nextPath);
+    }
+  };
+
   const handleSignIn = async () => {
     setAuthNotice('');
     try {
       await signInWithPopup(auth, googleProvider);
     } catch (err) {
       const msg = extractReadableError(err, 'Unable to complete Google sign-in.');
-      if (!msg.includes('popup-closed-by-user')) {
+      if (msg.includes('auth/unauthorized-domain')) {
+        setAuthNotice(
+          `Domain authorization required: Add "${window.location.hostname}" to Firebase Console -> Authentication -> Settings -> Authorized domains.`
+        );
+      } else if (msg.includes('auth/popup-blocked')) {
+        setAuthNotice('Sign-in popup was blocked by your browser. Please allow popups for this site and try again.');
+      } else if (!msg.includes('popup-closed-by-user')) {
         setAuthNotice(msg);
       }
     }
@@ -182,6 +282,7 @@ function MainApp() {
       await signOut(auth);
       if (activeView === 'admin') {
         setActiveView('opportunities');
+        pushRoute('opportunities');
       }
     } catch (err) {
       setAuthNotice(extractReadableError(err, 'Unable to sign out.'));
@@ -191,14 +292,18 @@ function MainApp() {
   const handleNavigate = (view: ActiveView) => {
     if (view !== 'jobDetail') {
       setSelectedJobDetail(null);
+      setPendingJobSlug(null);
     }
     setActiveView(view);
+    pushRoute(view, view === 'jobDetail' ? selectedJobDetail : null);
   };
 
   const handleOpenJobDetail = (detail: JobDetailSelection, fromView: ActiveView) => {
     setReturnView(fromView);
     setSelectedJobDetail(detail);
+    setPendingJobSlug(null);
     setActiveView('jobDetail');
+    pushRoute('jobDetail', detail);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 

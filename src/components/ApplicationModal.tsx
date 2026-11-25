@@ -755,8 +755,12 @@ export const ApplicationModal: React.FC<ApplicationModalProps> = ({
               </label>
             </div>
 
-            {/* Required Telegram CEO CTA Banner BEFORE submission inside every application form */}
-            <TelegramCtaBanner variant="compact" />
+            {/* Registration Process Notice: complete form first; Telegram CTA appears after Firestore save */}
+            <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 text-xs text-[#0B1F3A] leading-relaxed">
+              <strong>Registration Step:</strong> Complete and submit your application form below.
+              Once your application is saved to your account, you will see our confirmation screen
+              and the official Telegram button to continue your registration.
+            </div>
 
             <div className="flex items-center justify-end gap-3 pt-2 border-t border-slate-200">
               <button
